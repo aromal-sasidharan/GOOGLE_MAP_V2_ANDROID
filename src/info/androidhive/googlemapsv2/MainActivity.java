@@ -1,15 +1,26 @@
 package info.androidhive.googlemapsv2;
 
-import info.androidhive.googlemapsv2.DelayedCall.CallBack;
+import java.util.ArrayList;
+
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
+
+import tools.googlemap.Constants;
 import android.app.Activity;
-import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response.ErrorListener;
+import com.android.volley.Response.Listener;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
@@ -18,19 +29,18 @@ import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends Activity implements LocationListener{
+public class MainActivity extends Activity implements LocationListener {
 
 	// Google Map
 	private GoogleMap googleMap;
-
+	RequestQueue requestQueue;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
 		try {
-			
-			
+
 			// Loading map
 			initilizeMap();
 			// Changing map type
@@ -41,7 +51,6 @@ public class MainActivity extends Activity implements LocationListener{
 			// googleMap.setMapType(GoogleMap.MAP_TYPE_NONE);
 
 			// Showing / hiding your current location
-		
 
 			// Enable / Disable zooming controls
 			googleMap.getUiSettings().setZoomControlsEnabled(false);
@@ -58,10 +67,6 @@ public class MainActivity extends Activity implements LocationListener{
 			// Enable / Disable zooming functionality
 			googleMap.getUiSettings().setZoomGesturesEnabled(true);
 
-			
-			
-		
-			
 			double latitude = 17.385044;
 			double longitude = 78.486671;
 
@@ -123,20 +128,33 @@ public class MainActivity extends Activity implements LocationListener{
 							.newCameraPosition(cameraPosition));
 				}
 			}
-			
-			new DelayedCall().delayedCall(3000, new CallBack() {
-				
-				public void onCallBack(Object... args) {
-					// TODO Auto-generated method stub
-					Log.e("","calling back");
-					
-					LocationManager lm = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-					   lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, MainActivity.this);
-					googleMap.setMyLocationEnabled(true);
-				}
-			}, null);
-			
+			// new DelayedCall().delayedCall(3000, new CallBack() {
+			//
+			// public void onCallBack(Object... args) {
+			// // TODO Auto-generated method stub
+			// Log.e("", "calling back");
+			//
+			// LocationManager lm = (LocationManager)
+			// getSystemService(Context.LOCATION_SERVICE);
+			//
+			// lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+			// 0, 0, MainActivity.this);
+			// googleMap.setMyLocationEnabled(true);
+			// }
+			// }, null);
+
+//			new DirectionsRequest(false, "anchal", "trivandrum",
+//					new ResponseListner() {
+//
+//						@Override
+//						public void onResponse(String response,
+//								Exception exception) {
+//							// TODO Auto-generated method stub
+//							System.out.println("Response is " + response);
+//						}
+//					});
+			makeRequests(false, "anchal", "trivandrum");
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -179,33 +197,69 @@ public class MainActivity extends Activity implements LocationListener{
 
 	public void onLocationChanged(Location location) {
 		// TODO Auto-generated method stub
-		Log.e("","calling back");
+		Log.e("", "calling back");
 		googleMap.clear();
 
-		   MarkerOptions mp = new MarkerOptions();
+		MarkerOptions mp = new MarkerOptions();
 
-		   mp.position(new LatLng(location.getLatitude(), location.getLongitude()));
+		mp.position(new LatLng(location.getLatitude(), location.getLongitude()));
 
-		   mp.title("my position");
+		mp.title("my position");
 
-		   googleMap.addMarker(mp);
+		googleMap.addMarker(mp);
 
-		   googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-		    new LatLng(location.getLatitude(), location.getLongitude()), 16));
+		googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(
+				location.getLatitude(), location.getLongitude()), 16));
 	}
 
 	public void onProviderDisabled(String provider) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void onProviderEnabled(String provider) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	public void onStatusChanged(String provider, int status, Bundle extras) {
 		// TODO Auto-generated method stub
-		
+
+	}
+
+	public void makeRequests(boolean sensor, String origin, String destination) {
+		ArrayList<BasicNameValuePair> params = new ArrayList<BasicNameValuePair>();
+		params.add(new BasicNameValuePair(Constants.PARAMETER_ORIGIN, origin));
+		params.add(new BasicNameValuePair(Constants.PARAMETER_DESTINATION,
+				destination));
+		params.add(new BasicNameValuePair(Constants.PARAMETER_SENSOR, String
+				.valueOf(sensor)));
+
+		requestQueue = Volley.newRequestQueue(MainActivity.this);
+		String url = Constants.DIRECTIONS_API_URI;
+
+		try {
+			url = url + "?"
+					+ EntityUtils.toString(new UrlEncodedFormEntity(params));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(url, null, new Listener<JSONObject>() {
+
+			@Override
+			public void onResponse(JSONObject response) {
+				// TODO Auto-generated method stub
+				
+			}
+		}, new ErrorListener() {
+
+			@Override
+			public void onErrorResponse(VolleyError error) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
+		requestQueue.add(jsonObjectRequest);
 	}
 }
