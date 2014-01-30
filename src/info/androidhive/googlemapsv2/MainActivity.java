@@ -1,14 +1,19 @@
 package info.androidhive.googlemapsv2;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import tools.googlemap.Constants;
+import tools.googlemap.MapUtil;
 import android.app.Activity;
+import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
@@ -28,6 +33,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 public class MainActivity extends Activity implements LocationListener {
 
@@ -245,12 +251,30 @@ public class MainActivity extends Activity implements LocationListener {
 			e.printStackTrace();
 		}
 
+		Log.e("TAG","URL"+url);
 		JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(url, null, new Listener<JSONObject>() {
 
 			@Override
 			public void onResponse(JSONObject response) {
 				// TODO Auto-generated method stub
+				try {
+					
+					JSONArray jsonObjectArray = response.getJSONArray("routes");
+					
+					
+					
+					
+					JSONObject jsonObject = jsonObjectArray.getJSONObject(0);
+					
+//					System.out.println(jsonObject.getJSONObject("overview_polyline").getString("points").toString());
+					String path = jsonObject.getJSONObject("overview_polyline").getString("points").toString();
+					MainActivity.this.drawToMap(path);
+					
 				
+				} catch (JSONException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}, new ErrorListener() {
 
@@ -261,5 +285,25 @@ public class MainActivity extends Activity implements LocationListener {
 			}
 		});
 		requestQueue.add(jsonObjectRequest);
+	}
+	
+	public void drawToMap(String path)
+	{
+		List<LatLng> directionPoint = MapUtil.getDecodedPoly(path);
+        
+        PolylineOptions rectLine = new PolylineOptions().width(10).color(Color.RED);
+      for (int i = 0; i < directionPoint.size(); i++) {
+            rectLine.add(directionPoint.get(i));
+      }
+      // Adding route on the map
+      googleMap.addPolyline(rectLine);
+      CameraPosition cameraPosition = new CameraPosition.Builder()
+		.target(directionPoint.get(0)).zoom(10).build();
+      googleMap.animateCamera(CameraUpdateFactory
+				.newCameraPosition(cameraPosition));
+//      MarkerOptions marker = new MarkerOptions();
+//      marker.position(new LatLng(dest_lat, dest_long));
+//      marker.draggable(true);
+//      googleMap.addMarker(marker);
 	}
 }
